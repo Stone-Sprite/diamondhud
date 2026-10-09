@@ -1,0 +1,25 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+
+license = "MIT"
+[[mods]]
+modId = "diamondhud"
+version = "0.4.5"
+displayName = "Diamond HUD"
+authors = "DSH"
+description = '''
+An arrow between the health and hunger bars pointing at the nearest diamond ore.
+'''
+logoFile = "logo.png"
+[[dependencies.diamondhud]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.11.42,)"
+ordering = "NONE"
+side = "BOTH"
+[[dependencies.diamondhud]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.11,1.22)"
+ordering = "NONE"
+side = "BOTH"
