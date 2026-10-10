@@ -55,8 +55,8 @@ Minecraft **1.21.11** 客户端模组，**Fabric** 和 **NeoForge** 两个版本
 
 | 文件 | 加载器 |
 |---|---|
-| `diamondhud-0.5.0-fabric.jar` | Fabric |
-| `diamondhud-0.4.5-neoforge.jar` | NeoForge |
+| `diamondhud-0.5.0-Fabric-1.21.11.jar` | Fabric |
+| `diamondhud-0.4.5-NeoForge-1.21.11.jar` | NeoForge |
 
 ---
 
