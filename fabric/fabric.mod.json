@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "diamondhud",
+  "version": "0.5.0",
+  "name": "Diamond HUD",
+  "description": "An arrow between the health and hunger bars pointing at the nearest diamond ore.",
+  "authors": ["DSH"],
+  "license": "MIT",
+  "icon": "logo.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.dsh.diamondhud.DiamondHudMod"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "fabric-api": "*",
+    "minecraft": "~1.21.11",
+    "java": ">=21"
+  }
+}

@@ -58,12 +58,26 @@ final class Arrows {
      * path that has actually been verified on screen, and 22.5 degree steps are not
      * perceptible now that the heading itself updates every frame.
      */
-    static void drawCreate(GuiGraphics g, int cx, int cy, double deg, int px) {
+    /**
+     * Which of the sheet's sixteen frames draws the arrow turned {@code deg}
+     * clockwise from screen-up.
+     *
+     * <p>Read out of the texture rather than assumed: frame 0 is the up arrow, and
+     * matching frame 4 against frame 0 turned 90 degrees clockwise scores 0.71
+     * against 0.63 for the counter-clockwise turn, so the index really does grow
+     * clockwise. Kept as its own method so the debug log reports the same number
+     * the blit uses instead of a second copy of the arithmetic.
+     */
+    static int frameFor(double deg) {
         double a = deg % 360.0;
         if (a < 0.0) {
             a += 360.0;
         }
-        int frame = (int) Math.round(a / (360.0 / FRAMES)) % FRAMES;
+        return (int) Math.round(a / (360.0 / FRAMES)) % FRAMES;
+    }
+
+    static void drawCreate(GuiGraphics g, int cx, int cy, double deg, int px) {
+        int frame = frameFor(deg);
         int size = FRAME * px;
         g.blit(RenderPipelines.GUI_TEXTURED, TEXTURE,
                 cx - size / 2, cy - size / 2,
