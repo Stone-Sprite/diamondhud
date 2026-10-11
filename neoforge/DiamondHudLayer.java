@@ -1,6 +1,5 @@
 package dev.dsh.diamondhud;
 
-import java.util.HashSet;
 import java.util.Set;
 
 import net.minecraft.client.DeltaTracker;
@@ -9,9 +8,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.gui.GuiLayer;
 import org.slf4j.Logger;
@@ -31,23 +28,21 @@ final class DiamondHudLayer implements GuiLayer {
     private static final Logger LOG = LoggerFactory.getLogger("diamondhud");
 
     /**
-     * Search box half-extent, in blocks, around the player.
+     * Search box half-extent, in blocks, around the player, and the blocks to look for.
      *
-     * <p>Override with {@code -Ddiamondhud.radius=N}. Note that a cube this size
-     * around a player standing at the surface does not reach the deep layers where
-     * diamond actually generates, so the arrow is meant to be read while caving or
+     * <p>Both come from the settings the in-game screen writes, so they are read into
+     * fields instead of being baked in at class-init time; {@link #syncWithConfig} picks
+     * up changes while the game is running.
+     *
+     * <p>A 20-block cube around a player standing at the surface does not reach the deep
+     * layers where diamond generates, so the arrow is meant to be read while caving or
      * mining rather than while walking around above ground.
      */
-    private static final int RADIUS = Integer.getInteger("diamondhud.radius", 20);
+    private int radius = DiamondHudConfig.radius();
+    private Set<Block> targets = DiamondHudConfig.targets();
 
-    /**
-     * Which blocks to point at. Override with {@code -Ddiamondhud.target=a,b,c} to
-     * aim the arrow at something else, which is also how the render is smoke tested
-     * without hunting for real diamond.
-     */
-    private static final Set<Block> TARGETS = resolveTargets(
-            System.getProperty("diamondhud.target",
-                    "minecraft:diamond_ore,minecraft:deepslate_diamond_ore"));
+    /** The config revision {@link #radius} and {@link #targets} were read from. */
+    private int configGeneration = DiamondHudConfig.generation();
 
     /**
      * Client ticks between world rescans. Kept short so the chosen target keeps up
@@ -61,10 +56,7 @@ final class DiamondHudLayer implements GuiLayer {
     /** Horizontal distance under which the target counts as straight up or down. */
     private static final double VERTICAL_HORIZ = 3.0;
 
-    /** Middle of the band diamond ore generates in, used for the empty-scan hint. */
-    private static final double DIAMOND_Y = -59.0;
-
-    /** Point at the diamond layer when nothing is in range instead of drawing nothing. */
+    /** Point at the target layer when nothing is in range instead of drawing nothing. */
     private static final boolean HINT_WHEN_EMPTY =
             !"false".equals(System.getProperty("diamondhud.hint", "true"));
 
@@ -78,6 +70,20 @@ final class DiamondHudLayer implements GuiLayer {
      */
     private static final boolean RELATIVE =
             !"absolute".equalsIgnoreCase(System.getProperty("diamondhud.arrow", "relative"));
+
+    /**
+     * {@code -Ddiamondhud.debug=true}: log what the arrow decided, once a second.
+     *
+     * <p>"The arrow points the wrong way" cannot be settled from a screenshot — the
+     * frame on screen is the product of four numbers that are all invisible in it
+     * (the target offset, the absolute bearing, the player's view bearing, and the
+     * resulting angle). This prints all four plus the frame index it selected, so a
+     * wrong heading can be located rather than guessed at.
+     */
+    private static final boolean DEBUG = Boolean.getBoolean("diamondhud.debug");
+
+    /** Wall clock of the last debug line, so the log stays readable at 60 fps. */
+    private long lastDebugAt;
 
     /**
      * The player's facing expressed in the same clockwise-from-north convention the
@@ -103,8 +109,38 @@ final class DiamondHudLayer implements GuiLayer {
 
     static {
         // slf4j rather than System.out: stdout is not captured into latest.log here.
-        LOG.info("init radius={} targets={} {}", RADIUS, TARGETS.size(),
-                TARGETS.stream().map(b -> String.valueOf(BuiltInRegistries.BLOCK.getKey(b))).toList());
+        LOG.info("init enabled={} radius={} targets={} {}", DiamondHudConfig.enabled(),
+                DiamondHudConfig.radius(), DiamondHudConfig.targets().size(),
+                DiamondHudConfig.targets().stream()
+                        .map(b -> String.valueOf(BuiltInRegistries.BLOCK.getKey(b))).toList());
+    }
+
+    /**
+     * Re-read the settings when they change, and forget what was remembered under the
+     * old ones.
+     *
+     * <p>{@link #known} holds concrete ore positions, so it is only meaningful for the
+     * target set it was collected under: keep it across a change and the arrow would go on
+     * pointing at iron after the user switched to diamond. The generation counter is how
+     * the config tells us that happened without either side holding a listener on the
+     * other.
+     */
+    private void syncWithConfig() {
+        int now = DiamondHudConfig.generation();
+        if (now == configGeneration) {
+            return;
+        }
+        configGeneration = now;
+        radius = DiamondHudConfig.radius();
+        targets = DiamondHudConfig.targets();
+        known.clear();
+        resetScan();
+    }
+
+    private void resetScan() {
+        scanOx = -radius;
+        scanOy = -radius;
+        scanOz = -radius;
     }
 
     @Override
@@ -112,6 +148,12 @@ final class DiamondHudLayer implements GuiLayer {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer p = mc.player;
         if (p == null || mc.level == null || mc.options.hideGui) {
+            return;
+        }
+        syncWithConfig();
+        // The keybind and the settings screen can both switch the arrow off; nothing is
+        // scanned while it is off, so a disabled HUD costs exactly nothing per frame.
+        if (!DiamondHudConfig.enabled()) {
             return;
         }
         // Discovery feeds the memory; navigation reads it. Splitting the two is what
@@ -152,8 +194,14 @@ final class DiamondHudLayer implements GuiLayer {
         } else {
             // Nothing in range. Drawing nothing reads as "broken", and above ground no
             // cube around the player can ever reach the deep layers, so point straight
-            // down at the layer diamond generates in and show the depth to it.
-            double below = p.getY() - DIAMOND_Y;
+            // down at the depth the selected ores generate in and show the distance to it.
+            // Nether-only ores have no useful depth, so a selection made only of those
+            // gets no hint rather than a misleading one.
+            Integer h = DiamondHudConfig.hintY();
+            if (h == null) {
+                return;
+            }
+            double below = p.getY() - h;
             if (below < 2.0) {
                 return;   // already down there; an empty screen is honest here
             }
@@ -176,6 +224,12 @@ final class DiamondHudLayer implements GuiLayer {
 
         boolean straightUpDown = horiz < VERTICAL_HORIZ && Math.abs(dy) > VERTICAL_BIAS;
 
+        // The bearing is absolute; what the sprite shows is that minus where the player
+        // is looking, because the sheet's frame 0 is "ahead", not "north".
+        double absolute = Math.toDegrees(Math.atan2(dx, -dz));
+        double view = screenYaw(p);
+        double drawn;
+
         if (straightUpDown) {
             // Lock to the vertical axis and drift along it so it reads as a repeating
             // "this way" nudge rather than a static icon. The sprite points up, so a
@@ -184,16 +238,19 @@ final class DiamondHudLayer implements GuiLayer {
             // like a second, broken arrow.
             // dy is target minus eye, so a positive dy means the target is ABOVE.
             boolean up = dy > 0;
-            double deg = up ? 0.0 : 180.0;
+            drawn = up ? 0.0 : 180.0;
             int offset = up ? -bob : bob;
-            Arrows.drawCreate(g, cx, cy + offset, deg, PIXEL);
+            Arrows.drawCreate(g, cx, cy + offset, drawn, PIXEL);
         } else {
             // atan2(dx, -dz) is the clockwise angle from north: 0 = up on screen,
             // 90 = right, 180 = down. That is an ABSOLUTE heading, and with it the
             // arrow says "the ore is north of you" — which reads as pointing behind
             // you whenever the ore is in front but you happen to face south.
-            double absolute = Math.toDegrees(Math.atan2(dx, -dz));
-            Arrows.drawCreate(g, cx, cy, RELATIVE ? absolute - screenYaw(p) : absolute, PIXEL);
+            drawn = RELATIVE ? absolute - view : absolute;
+            Arrows.drawCreate(g, cx, cy, drawn, PIXEL);
+        }
+        if (DEBUG) {
+            debugLog(p, target, dx, dy, dz, dist, absolute, view, drawn, straightUpDown, hint, cx, cy);
         }
 
         // Distance, centred above the arrow.
@@ -237,9 +294,10 @@ final class DiamondHudLayer implements GuiLayer {
     private final java.util.Map<Long, BlockPos> known = new java.util.LinkedHashMap<>();
 
     private final BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
-    private int scanOx = -RADIUS;
-    private int scanOy = -RADIUS;
-    private int scanOz = -RADIUS;
+    // seeded from the configured radius; resetScan() re-seeds them when it changes
+    private int scanOx = -DiamondHudConfig.radius();
+    private int scanOy = -DiamondHudConfig.radius();
+    private int scanOz = -DiamondHudConfig.radius();
     private int verifyCursor;
 
     private static long key(BlockPos p) {
@@ -277,14 +335,12 @@ final class DiamondHudLayer implements GuiLayer {
                 }
                 known.putIfAbsent(key(found), found);
             }
-            if (++scanOz > RADIUS) {
-                scanOz = -RADIUS;
-                if (++scanOy > RADIUS) {
-                    scanOy = -RADIUS;
-                    if (++scanOx > RADIUS) {
-                        scanOx = -RADIUS;
-                        scanOy = -RADIUS;
-                        scanOz = -RADIUS;
+            if (++scanOz > radius) {
+                scanOz = -radius;
+                if (++scanOy > radius) {
+                    scanOy = -radius;
+                    if (++scanOx > radius) {
+                        resetScan();
                         LOG.info("discovery pass done, remembered={}", known.size());
                         return;
                     }
@@ -345,26 +401,44 @@ final class DiamondHudLayer implements GuiLayer {
         return best;
     }
 
-    private static boolean isTarget(BlockState st) {
-        return TARGETS.contains(st.getBlock());
+    /**
+     * One line a second describing the arrow's decision. See {@link #DEBUG}.
+     *
+     * <p>{@code drawn} is the angle handed to the sprite, so {@code frame} is what
+     * the blit actually picked: frame 0 is up, 4 right, 8 down, 12 left.
+     */
+    private void debugLog(LocalPlayer p, BlockPos tgt, double dx, double dy, double dz,
+                          double dist, double absolute, double view, double drawn,
+                          boolean locked, boolean hint, int cx, int cy) {
+        long now = System.currentTimeMillis();
+        if (now - lastDebugAt < 1000L) {
+            return;
+        }
+        lastDebugAt = now;
+        LOG.info("arrow radius={} targets=[{}] tgt={} off=({},{},{}) dist={} at=({}, {}, {}) "
+                        + "yaw={} pitch={} absolute={} view={} relative={} drawn={} frame={} "
+                        + "locked={} hint={} screen=({},{})",
+                radius, targetNames(),
+                tgt == null ? "none" : tgt.toShortString(),
+                fmt(dx), fmt(dy), fmt(dz), fmt(dist),
+                fmt(p.getX()), fmt(p.getY()), fmt(p.getZ()), fmt(p.getYRot()), fmt(p.getXRot()),
+                fmt(absolute), fmt(view), fmt(absolute - view), fmt(drawn),
+                Arrows.frameFor(drawn), locked, hint, cx, cy);
     }
 
-    /** Turn "minecraft:x,minecraft:y" into a set of live block instances. */
-    private static Set<Block> resolveTargets(String csv) {
-        Set<Block> out = new HashSet<>();
-        for (String token : csv.split(",")) {
-            Identifier id = Identifier.tryParse(token.trim());
-            if (id == null) {
-                continue;
-            }
-            Block block = BuiltInRegistries.BLOCK.getValue(id);
-            if (block != null) {
-                out.add(block);
-            }
-        }
-        if (out.isEmpty()) {
-            out.add(Blocks.DIAMOND_ORE);
-        }
-        return out;
+    private static String fmt(double v) {
+        return String.format(java.util.Locale.ROOT, "%.1f", v);
+    }
+
+    private boolean isTarget(BlockState st) {
+        return targets.contains(st.getBlock());
+    }
+
+    /** Names of the blocks currently being looked for, for the debug line and the log. */
+    private String targetNames() {
+        return targets.stream()
+                .map(b -> String.valueOf(BuiltInRegistries.BLOCK.getKey(b)))
+                .sorted()
+                .collect(java.util.stream.Collectors.joining(","));
     }
 }

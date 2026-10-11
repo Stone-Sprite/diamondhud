@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "id": "diamondhud",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "name": "Diamond HUD",
-  "description": "An arrow between the health and hunger bars pointing at the nearest diamond ore.",
+  "description": "An arrow between the health and hunger bars pointing at the nearest ore you chose. Right-click a compass to pick which ores, and set the search radius.",
   "authors": ["DSH"],
   "license": "MIT",
   "icon": "logo.png",

@@ -1,0 +1,15 @@
+{
+  "key.diamondhud.toggle": "开关矿石指示箭头",
+  "key.diamondhud.settings": "打开矿石指示器设置",
+  "key.diamondhud.ore.coal": "切换·煤矿",
+  "key.diamondhud.ore.copper": "切换·铜矿",
+  "key.diamondhud.ore.iron": "切换·铁矿",
+  "key.diamondhud.ore.gold": "切换·金矿",
+  "key.diamondhud.ore.redstone": "切换·红石",
+  "key.diamondhud.ore.lapis": "切换·青金石",
+  "key.diamondhud.ore.diamond": "切换·钻石",
+  "key.diamondhud.ore.emerald": "切换·绿宝石",
+  "key.diamondhud.ore.quartz": "切换·下界石英",
+  "key.diamondhud.ore.nether_gold": "切换·下界金",
+  "key.diamondhud.ore.debris": "切换·远古残骸"
+}

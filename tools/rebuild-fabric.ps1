@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Continue'
+﻿$ErrorActionPreference = 'Continue'
 $proj  = 'D:\dsh-build\diamondhud-fabric'
 $build = "$proj\build"
 $stage = "$build\stage"
@@ -23,15 +23,25 @@ $cpOfficial  = 'D:\.minecraft\versions\1.21.11\1.21.11.jar'
 
 $mojJar = "$build\diamondhud-mojang.jar"
 $midJar = "$build\diamondhud-official.jar"
-$finJar = "$build\diamondhud-0.5.0-fabric.jar"
+$finJar = "$build\diamondhud-0.6.0-fabric.jar"
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 Write-Host '### 1/5 compile'
+# The argfile is regenerated every run from whatever is in src: a stale one silently
+# omits files added later, and javac then reports them as "cannot find symbol".
+$src = "$proj\src\dev\dsh\diamondhud"
+$cp = (Get-Content "$build\cp.txt" -Raw).Trim() -replace '\\', '/'
+$files = Get-ChildItem $src -Filter *.java | Sort-Object Name
 if (Test-Path "$build\classes") { Remove-Item "$build\classes" -Recurse -Force }
+$argsTxt = @('-nowarn', '-encoding', 'UTF-8', '-d', "$proj/build/classes", '-cp', "`"$cp`"")
+foreach ($f in $files) { $argsTxt += ($f.FullName -replace '\\', '/') }
+[System.IO.File]::WriteAllText("$build\javac.args", ($argsTxt -join "`n"),
+    (New-Object System.Text.UTF8Encoding($false)))
 & $javac "@$build\javac.args" 2>&1 | Select-Object -First 20
 if ($LASTEXITCODE -ne 0) { Write-Host "javac FAILED"; exit 1 }
-Write-Host ("  classes: " + (Get-ChildItem "$build\classes" -Recurse -File).Count)
+Write-Host ("  sources={0}  classes={1}" -f $files.Count,
+    (Get-ChildItem "$build\classes" -Recurse -File).Count)
 
 Write-Host '### 2/5 stage (classes + resources)'
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }

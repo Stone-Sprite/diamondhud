@@ -1,0 +1,15 @@
+{
+  "key.diamondhud.toggle": "Toggle ore arrow",
+  "key.diamondhud.settings": "Open ore arrow settings",
+  "key.diamondhud.ore.coal": "Toggle - Coal",
+  "key.diamondhud.ore.copper": "Toggle - Copper",
+  "key.diamondhud.ore.iron": "Toggle - Iron",
+  "key.diamondhud.ore.gold": "Toggle - Gold",
+  "key.diamondhud.ore.redstone": "Toggle - Redstone",
+  "key.diamondhud.ore.lapis": "Toggle - Lapis Lazuli",
+  "key.diamondhud.ore.diamond": "Toggle - Diamond",
+  "key.diamondhud.ore.emerald": "Toggle - Emerald",
+  "key.diamondhud.ore.quartz": "Toggle - Nether Quartz",
+  "key.diamondhud.ore.nether_gold": "Toggle - Nether Gold",
+  "key.diamondhud.ore.debris": "Toggle - Ancient Debris"
+}

@@ -4,11 +4,13 @@ loaderVersion = "[1,)"
 license = "MIT"
 [[mods]]
 modId = "diamondhud"
-version = "0.4.5"
+version = "0.6.0"
 displayName = "Diamond HUD"
 authors = "DSH"
 description = '''
-An arrow between the health and hunger bars pointing at the nearest diamond ore.
+An arrow between the health and hunger bars pointing at the nearest ore you chose.
+Pick which ores with a keybind, the in-game settings screen, or by right-clicking a
+compass; the search radius is set in the same screen.
 '''
 logoFile = "logo.png"
 [[dependencies.diamondhud]]
