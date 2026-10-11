@@ -1,6 +1,5 @@
 package dev.dsh.diamondhud;
 
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -83,22 +82,16 @@ final class OreTargets {
     }
 
     /**
-     * The block set for a set of keys.
+     * The block set for one ore key.
      *
-     * <p>Falls back to diamond when nothing resolves: an empty set would make the arrow
-     * point at nothing, which reads as a broken mod rather than as an empty selection.
+     * <p>Falls back to diamond when the key does not resolve: an empty set would make the
+     * arrow point at nothing, which reads as a broken mod rather than as a bad setting.
      */
-    static Set<Block> blocksOf(Collection<String> keys) {
-        Set<Block> out = new HashSet<>();
-        for (String k : keys) {
-            Ore o = BY_KEY.get(k);
-            if (o != null) {
-                out.addAll(o.blocks);
-            }
+    static Set<Block> blocksOf(String key) {
+        Ore o = BY_KEY.get(key);
+        if (o == null) {
+            o = BY_KEY.get(DEFAULT_KEY);
         }
-        if (out.isEmpty()) {
-            out.addAll(BY_KEY.get(DEFAULT_KEY).blocks);
-        }
-        return out;
+        return new HashSet<>(o.blocks);
     }
 }

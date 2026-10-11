@@ -1,5 +1,5 @@
 ﻿$ErrorActionPreference = 'Stop'
-$finJar = 'D:\dsh-build\diamondhud-fabric\build\diamondhud-0.6.0-fabric.jar'
+$finJar = 'D:\dsh-build\diamondhud-fabric\build\diamondhud-0.6.1-fabric.jar'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 # The version folder name is non-ASCII (a Chinese word), and a .ps1 without a BOM
@@ -9,7 +9,7 @@ $verDir = Get-ChildItem 'D:\.minecraft\versions' -Directory |
     Where-Object { @(Get-ChildItem (Join-Path $_.FullName 'mods') -Filter '*litematica*' -ErrorAction SilentlyContinue).Count -gt 0 } |
     Select-Object -First 1
 if (-not $verDir) { throw 'profile mods folder not found' }
-$target = Join-Path $verDir.FullName 'mods\diamondhud-0.6.0-fabric.jar'
+$target = Join-Path $verDir.FullName 'mods\diamondhud-0.6.1-fabric.jar'
 Write-Host ("profile : " + $verDir.Name)
 Copy-Item $finJar $target -Force
 Get-Item $target | ForEach-Object { "installed: {0} bytes  {1}" -f $_.Length, $_.LastWriteTime }

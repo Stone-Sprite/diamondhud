@@ -106,18 +106,16 @@ final class DiamondHudSettingsScreen extends Screen {
     }
 
     private static Component oresLabel() {
-        return Component.literal("矿石选择（已选 " + DiamondHudConfig.ores().size()
-                + " / " + OreTargets.ALL.size() + "）");
+        return Component.literal("选择矿石（当前：" + OreTargets.label(DiamondHudConfig.ore()) + "）");
     }
 
     private static String selectedOresText() {
-        List<String> labels = new ArrayList<>();
-        for (OreTargets.Ore ore : OreTargets.ALL) {
-            if (DiamondHudConfig.oreSelected(ore.key)) {
-                labels.add(ore.label);
-            }
+        OreTargets.Ore o = OreTargets.byKey(DiamondHudConfig.ore());
+        if (o == null) {
+            return "找：" + DiamondHudConfig.ore();
         }
-        return "找：" + String.join("、", labels);
+        return "找：" + o.label
+                + (o.hintY == null ? "" : "（扫不到时朝下指 Y=" + o.hintY + "）");
     }
 
     /** Greedy wrap on the separator the ore names already use. */

@@ -1,15 +1,15 @@
 {
   "key.diamondhud.toggle": "Toggle ore arrow",
   "key.diamondhud.settings": "Open ore arrow settings",
-  "key.diamondhud.ore.coal": "Toggle - Coal",
-  "key.diamondhud.ore.copper": "Toggle - Copper",
-  "key.diamondhud.ore.iron": "Toggle - Iron",
-  "key.diamondhud.ore.gold": "Toggle - Gold",
-  "key.diamondhud.ore.redstone": "Toggle - Redstone",
-  "key.diamondhud.ore.lapis": "Toggle - Lapis Lazuli",
-  "key.diamondhud.ore.diamond": "Toggle - Diamond",
-  "key.diamondhud.ore.emerald": "Toggle - Emerald",
-  "key.diamondhud.ore.quartz": "Toggle - Nether Quartz",
-  "key.diamondhud.ore.nether_gold": "Toggle - Nether Gold",
-  "key.diamondhud.ore.debris": "Toggle - Ancient Debris"
+  "key.diamondhud.ore.coal": "Point at - Coal",
+  "key.diamondhud.ore.copper": "Point at - Copper",
+  "key.diamondhud.ore.iron": "Point at - Iron",
+  "key.diamondhud.ore.gold": "Point at - Gold",
+  "key.diamondhud.ore.redstone": "Point at - Redstone",
+  "key.diamondhud.ore.lapis": "Point at - Lapis Lazuli",
+  "key.diamondhud.ore.diamond": "Point at - Diamond",
+  "key.diamondhud.ore.emerald": "Point at - Emerald",
+  "key.diamondhud.ore.quartz": "Point at - Nether Quartz",
+  "key.diamondhud.ore.nether_gold": "Point at - Nether Gold",
+  "key.diamondhud.ore.debris": "Point at - Ancient Debris"
 }

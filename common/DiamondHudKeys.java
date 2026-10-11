@@ -46,7 +46,6 @@ final class DiamondHudKeys {
      * unbound means the user opts in per ore from the vanilla Controls screen.
      */
     private static final Map<String, KeyMapping> ORE = new LinkedHashMap<>();
-
     /** Everything the loader has to register, in a stable order. */
     static final List<KeyMapping> ALL;
 
@@ -96,10 +95,11 @@ final class DiamondHudKeys {
         for (Map.Entry<String, KeyMapping> e : ORE.entrySet()) {
             if (e.getValue() == km) {
                 String ore = e.getKey();
-                DiamondHudConfig.toggleOre(ore);
-                say(mc, OreTargets.label(ore) + " 已"
-                        + (DiamondHudConfig.oreSelected(ore) ? "开启" : "关闭")
-                        + "（共选中 " + DiamondHudConfig.ores().size() + " 种）");
+                boolean wasSelected = DiamondHudConfig.isOre(ore);
+                DiamondHudConfig.selectOre(ore);
+                say(mc, wasSelected
+                        ? OreTargets.label(ore) + " 已经是当前目标"
+                        : "改为找：" + OreTargets.label(ore));
                 return;
             }
         }

@@ -8,17 +8,17 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 
 /**
- * Second-level screen: the ore list.
+ * Second-level screen: pick the one ore to look for.
  *
  * <p>Split out of the main settings screen on purpose. Eleven buttons on a grid made the
- * primary panel tall enough that at a small GUI scale the rows ran into the footer and
- * the whole thing had to be re-derived from the panel rectangle every time an ore was
- * added. A plain scrolling list has one row height to get right and stays correct however
- * many ores the game grows.
+ * primary panel tall enough that at a small GUI scale the rows ran into the footer and the
+ * whole thing had to be re-derived from the panel rectangle every time an ore was added.
+ * A plain list has one row height to get right and stays correct however many ores the
+ * game grows.
  *
- * <p>Rows are hit-tested by hand rather than built as widgets: a widget per row would
- * have to be repositioned on every scroll, and the list is the one place where a stale
- * widget position is visible as a click landing on the wrong ore.
+ * <p>Rows are hit-tested by hand rather than built as widgets: a widget per row would have
+ * to be repositioned on every scroll, and this is the one place where a stale widget
+ * position shows up as a click landing on the wrong ore.
  */
 final class OreSelectScreen extends Screen {
 
@@ -48,7 +48,7 @@ final class OreSelectScreen extends Screen {
     private int scroll;
 
     OreSelectScreen(Screen parent) {
-        super(Component.literal("矿石选择"));
+        super(Component.literal("选择矿石"));
         this.parent = parent;
     }
 
@@ -66,7 +66,7 @@ final class OreSelectScreen extends Screen {
         panelW = Math.min(width - 16, 300);
         // The panel is sized to fit every ore without scrolling when the screen allows it,
         // and the chrome around the list is subtracted rather than guessed: the first cut
-        // reserved too little and the "已選中 N" line printed straight through the last row.
+        // reserved too little and the "已选中 N" line printed straight through the last row.
         int chrome = 60;
         panelH = Math.min(height - 16, OreTargets.ALL.size() * ROW_H + chrome);
         panelX = (width - panelW) / 2;
@@ -78,17 +78,13 @@ final class OreSelectScreen extends Screen {
         labelY = footerY - 13;
         listH = Math.max(ROW_H, labelY - 3 - listY);
 
-        int third = (listW - 8) / 3;
-        addRenderableWidget(Button.builder(Component.literal("全选"), b -> {
-            DiamondHudConfig.selectAllOres();
+        int half = (listW - 4) / 2;
+        addRenderableWidget(Button.builder(Component.literal("重置为钻石"), b -> {
+            DiamondHudConfig.resetOre();
             refresh();
-        }).bounds(listX, footerY, third, 14).build());
-        addRenderableWidget(Button.builder(Component.literal("只留钻石"), b -> {
-            DiamondHudConfig.selectOnlyDefault();
-            refresh();
-        }).bounds(listX + third + 4, footerY, third, 14).build());
+        }).bounds(listX, footerY, half, 14).build());
         addRenderableWidget(Button.builder(Component.literal("返回"), b -> onClose())
-                .bounds(listX + (third + 4) * 2, footerY, listW - (third + 4) * 2, 14).build());
+                .bounds(listX + half + 4, footerY, listW - half - 4, 14).build());
 
         refresh();
     }
@@ -111,9 +107,9 @@ final class OreSelectScreen extends Screen {
         g.fill(panelX - 1, panelY, panelX, panelY + panelH, EDGE);
         g.fill(panelX + panelW, panelY, panelX + panelW + 1, panelY + panelH, EDGE);
 
-        String title = "◆ 矿石选择";
+        String title = "◆ 选择矿石";
         g.drawString(font, title, listX, panelY + 6, text(TITLE), false);
-        String sub = "点一行切换 · 键位在 选项→控制→按键绑定 里设";
+        String sub = "点一行选中 · 键位在 选项→控制→按键绑定 里设";
         g.drawString(font, sub, listX + font.width(title) + 8, panelY + 6, text(DIM), false);
         g.fill(panelX + 4, listY - 5, panelX + panelW - 4, listY - 4, DIVIDER);
 
@@ -126,23 +122,25 @@ final class OreSelectScreen extends Screen {
             }
             OreTargets.Ore ore = OreTargets.ALL.get(idx);
             int ry = listY + i * ROW_H;
+            boolean selected = DiamondHudConfig.isOre(ore.key);
             boolean hover = mouseX >= listX && mouseX < listX + listW
                     && mouseY >= ry && mouseY < ry + ROW_H;
-            if (hover) {
+            if (selected) {
+                // the chosen row gets a solid bar, so one target is readable at a glance
+                g.fill(listX, ry, listX + listW, ry + ROW_H, 0x6020CC20);
+            } else if (hover) {
                 g.fill(listX, ry, listX + listW, ry + ROW_H, ROW_HOVER);
             }
-            boolean on = DiamondHudConfig.oreSelected(ore.key);
-            String mark = (on ? "✔ " : "✘ ") + ore.label;
+            String mark = (selected ? "● " : "○ ") + ore.label;
             g.drawString(font, mark, listX + 3, ry + 2,
-                    text(on ? GREEN : (hover ? TITLE : BODY)), false);
+                    text(selected ? GREEN : (hover ? TITLE : BODY)), false);
 
             String key = DiamondHudKeys.keyName(DiamondHudKeys.oreKey(ore.key));
             g.drawString(font, key, listX + listW - font.width(key) - 3, ry + 2,
                     text(DiamondHudKeys.oreKey(ore.key).isUnbound() ? DIM : ACCENT), false);
         }
 
-        String foot = "已选中 " + DiamondHudConfig.ores().size() + " / " + OreTargets.ALL.size()
-                + " 种" + (DiamondHudConfig.hintY() == null ? "（没有可提示的深度）" : "");
+        String foot = "当前：" + OreTargets.label(DiamondHudConfig.ore());
         g.drawString(font, foot, listX, labelY, text(ACCENT), false);
     }
 
@@ -158,7 +156,7 @@ final class OreSelectScreen extends Screen {
         if (mx >= listX && mx < listX + listW && my >= listY && my < listY + listH) {
             int idx = scroll + (int) ((my - listY) / ROW_H);
             if (idx >= 0 && idx < OreTargets.ALL.size()) {
-                DiamondHudConfig.toggleOre(OreTargets.ALL.get(idx).key);
+                DiamondHudConfig.selectOre(OreTargets.ALL.get(idx).key);
                 refresh();
                 return true;
             }

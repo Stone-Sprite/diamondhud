@@ -23,7 +23,7 @@ $cpOfficial  = 'D:\.minecraft\versions\1.21.11\1.21.11.jar'
 
 $mojJar = "$build\diamondhud-mojang.jar"
 $midJar = "$build\diamondhud-official.jar"
-$finJar = "$build\diamondhud-0.6.0-fabric.jar"
+$finJar = "$build\diamondhud-0.6.1-fabric.jar"
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
