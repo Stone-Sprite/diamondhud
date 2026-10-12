@@ -268,7 +268,14 @@ tools\install-fabric.ps1
 旧配置文件 `ores=` 自动改写、配置写盘与重读、`J` 打开设置、`H` 开关箭头、
 `-Ddiamondhud.debug` 的决策日志。
 
-**未实测**：NeoForge 版能编译、能打包，但没在 NeoForge 里跑过（这台机器上的 NeoForge 实例没装这个模组）。
+**NeoForge 版也实测过**（1.21.11 + NeoForge 21.11.45）：FML 能识别并加载，`init enabled=true
+radius=20 targets=2` 与每秒的 discovery 日志都正常，设置界面和矿石二级列表也进游戏点过。
+
+> 归档一条踩过的坑：早先发出去的 `diamondhud-0.6.0-NeoForge-1.21.11.jar` 是**坏的**。
+> 打包脚本用 .NET 的 `ZipFile.CreateFromDirectory`，它在 Windows 上会把条目名写成
+> `META-INF\neoforge.mods.toml`（反斜杠）。FML 找的是 `META-INF/neoforge.mods.toml`，
+> 找不到就报 **"not a valid mod"**。Fabric 对此宽容，所以只有 NeoForge 版炸。
+> 0.6.1 起改为逐个条目写、统一用正斜杠，并加了 MANIFEST.MF。
 
 ---
 

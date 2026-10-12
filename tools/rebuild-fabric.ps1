@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Continue'
+$ErrorActionPreference = 'Continue'
 $proj  = 'D:\dsh-build\diamondhud-fabric'
 $build = "$proj\build"
 $stage = "$build\stage"
@@ -25,6 +25,7 @@ $mojJar = "$build\diamondhud-mojang.jar"
 $midJar = "$build\diamondhud-official.jar"
 $finJar = "$build\diamondhud-0.6.1-fabric.jar"
 
+. "$PSScriptRoot\zip-helper.ps1"
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 Write-Host '### 1/5 compile'
@@ -49,7 +50,7 @@ New-Item -ItemType Directory -Force "$stage\dev\dsh\diamondhud" | Out-Null
 Copy-Item "$build\classes\dev\dsh\diamondhud\*.class" "$stage\dev\dsh\diamondhud\" -Force
 Copy-Item "$proj\resources\*" $stage -Recurse -Force
 foreach ($f in @($mojJar, $midJar, $finJar)) { if (Test-Path $f) { Remove-Item $f -Force } }
-[System.IO.Compression.ZipFile]::CreateFromDirectory($stage, $mojJar)
+New-CleanZip -SourceDir $stage -ZipPath $mojJar
 Write-Host ("  mojang jar: {0} bytes" -f (Get-Item $mojJar).Length)
 
 Write-Host '### 3/5 pass 1  mojang -> official'
